@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Foxen\BankHolidays\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class BankHolidaysCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'laravel-uk-bank-holidays';
 
     public $description = 'My command';
 
