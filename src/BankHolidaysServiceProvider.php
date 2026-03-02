@@ -2,9 +2,9 @@
 
 namespace Foxen\BankHolidays;
 
+use Foxen\BankHolidays\Commands\BankHolidaysCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Foxen\BankHolidays\Commands\BankHolidaysCommand;
 
 class BankHolidaysServiceProvider extends PackageServiceProvider
 {
