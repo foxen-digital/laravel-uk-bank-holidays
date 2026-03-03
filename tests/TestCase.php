@@ -2,8 +2,8 @@
 
 namespace Foxen\BankHolidays\Tests;
 
-use Orchestra\Testbench\TestCase as Orchestra;
 use Foxen\BankHolidays\BankHolidaysServiceProvider;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
 {
