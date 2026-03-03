@@ -94,7 +94,7 @@ class BankHolidays
         );
 
         if ($startDate > $endDate) {
-            throw InvalidDateException::make(
+            throw new InvalidDateException(
                 'Start date cannot be after end date',
             );
         }
@@ -209,7 +209,7 @@ class BankHolidays
     {
         $validTerritories = Territory::values();
 
-        if (! in_array($territory, $validTerritories)) {
+        if (! in_array($territory, $validTerritories, true)) {
             throw InvalidTerritoryException::make($territory);
         }
 
