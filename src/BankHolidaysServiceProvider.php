@@ -22,7 +22,7 @@ class BankHolidaysServiceProvider extends PackageServiceProvider
     public function packageRegistered(): void
     {
         $this->app->singleton(BankHolidays::class, function () {
-            return new BankHolidays();
+            return new BankHolidays;
         });
     }
 
