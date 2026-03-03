@@ -40,6 +40,10 @@ it('throws exception for invalid date format', function () {
     BankHolidays::isHoliday('not-a-date');
 })->throws(InvalidDateException::class);
 
+it('throws exception for invalid calendar date', function () {
+    BankHolidays::isHoliday('2026-99-99');
+})->throws(InvalidDateException::class);
+
 it('throws exception for invalid territory', function () {
     BankHolidays::forYear(2026, 'invalid-territory');
 })->throws(InvalidTerritoryException::class);

@@ -51,20 +51,13 @@ it('can manually clear cache', function () {
     Http::assertSentCount(1);
 });
 
-it('can clear cache for specific territory', function () {
+it('caches all territories in single cache key', function () {
+    // Request for different territories should still only make one API call
     BankHolidays::forYear(2026, 'england-and-wales');
     BankHolidays::forYear(2026, 'scotland');
+    BankHolidays::forYear(2026, 'northern-ireland');
 
-    BankHolidays::clearCache('england-and-wales');
-
-    // After clearing one territory, other should still be cached
-    Http::fake([
-        'https://www.gov.uk/*' => Http::response(getBankHolidaysJson()),
-    ]);
-
-    BankHolidays::forYear(2026, 'scotland');
-
-    Http::assertSentCount(0); // No API call because Scotland is still cached
+    Http::assertSentCount(1); // Only one API call for all territories
 });
 
 it('throws exception when api fails with no cache', function () {

@@ -137,9 +137,6 @@ $holiday = BankHolidays::get('2026-01-02'); // null
 ### Clear Cache
 
 ```php
-// Clear cache for a specific territory
-BankHolidays::clearCache('scotland');
-
 // Clear all cached data
 BankHolidays::clearCache();
 ```

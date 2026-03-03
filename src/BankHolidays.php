@@ -126,19 +126,22 @@ class BankHolidays
 
     protected function getHolidaysForTerritory(string $territory): Collection
     {
-        $cacheKey = "{$this->cacheKeyPrefix}:{$territory}";
+        $data = $this->getApiData();
+
+        return $this->parseHolidays(
+            $data[$territory]['events'] ?? [],
+            $territory,
+        );
+    }
+
+    protected function getApiData(): array
+    {
+        $cacheKey = "{$this->cacheKeyPrefix}:all";
 
         return Cache::remember(
             $cacheKey,
             $this->cacheDuration,
-            function () use ($territory) {
-                $data = $this->fetchFromApi();
-
-                return $this->parseHolidays(
-                    $data[$territory]['events'] ?? [],
-                    $territory,
-                );
-            },
+            fn () => $this->fetchFromApi(),
         );
     }
 
@@ -154,21 +157,8 @@ class BankHolidays
             return $response->json();
         } catch (ConnectionException $e) {
             // Try to return stale cache if available
-            return $this->getStaleCache();
+            throw ApiConnectionException::make(0);
         }
-    }
-
-    protected function getStaleCache(): array
-    {
-        $cacheKey = "{$this->cacheKeyPrefix}:all";
-
-        $staleData = Cache::get($cacheKey);
-
-        if ($staleData) {
-            return $staleData;
-        }
-
-        throw ApiConnectionException::make(0);
     }
 
     protected function parseHolidays(
@@ -192,9 +182,16 @@ class BankHolidays
             return $date->format('Y-m-d');
         }
 
-        // Try to parse as Y-m-d
+        // Try to parse as Y-m-d with strict validation
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-            return $date;
+            try {
+                $carbon = Carbon::createFromFormat('Y-m-d', $date);
+                if ($carbon && $carbon->format('Y-m-d') === $date) {
+                    return $date;
+                }
+            } catch (\Exception $e) {
+                // Fall through to throw exception
+            }
         }
 
         // Try to parse as any valid date format
@@ -218,21 +215,20 @@ class BankHolidays
 
     public function clearCache(?string $territory = null): void
     {
-        if ($territory) {
-            $territory = $this->validateTerritory($territory);
-            Cache::forget("{$this->cacheKeyPrefix}:{$territory}");
-        } else {
-            foreach (Territory::values() as $territory) {
-                Cache::forget("{$this->cacheKeyPrefix}:{$territory}");
-            }
-            Cache::forget("{$this->cacheKeyPrefix}:all");
-        }
+        // We cache the full API response under one key, so territory param is ignored
+        Cache::forget("{$this->cacheKeyPrefix}:all");
     }
 
     private function validateConfig(): void
     {
-        foreach (config('uk-bank-holidays') as $key => $value) {
-            if (! isset($value) || trim($value) === '') {
+        $config = config('uk-bank-holidays');
+
+        if (! is_array($config)) {
+            throw InvalidConfigException::make('uk-bank-holidays');
+        }
+
+        foreach ($config as $key => $value) {
+            if (! isset($value) || (is_string($value) && trim($value) === '')) {
                 throw InvalidConfigException::make($key);
             }
         }
