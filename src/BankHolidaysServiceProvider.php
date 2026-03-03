@@ -15,11 +15,6 @@ class BankHolidaysServiceProvider extends PackageServiceProvider
          *
          * More info: https://github.com/spatie/laravel-package-tools
          */
-        $package
-            ->name('laravel-uk-bank-holidays')
-            ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_laravel_uk_bank_holidays_table')
-            ->hasCommand(BankHolidaysCommand::class);
+        $package->name("laravel-uk-bank-holidays")->hasConfigFile();
     }
 }
