@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Foxen\BankHolidays\Data\Holiday;
 use Foxen\BankHolidays\Enums\Territory;
 use Foxen\BankHolidays\Exceptions\ApiConnectionException;
+use Foxen\BankHolidays\Exceptions\InvalidConfigException;
 use Foxen\BankHolidays\Exceptions\InvalidDateException;
 use Foxen\BankHolidays\Exceptions\InvalidTerritoryException;
 use Illuminate\Http\Client\ConnectionException;
@@ -25,16 +26,22 @@ class BankHolidays
 
     public function __construct()
     {
+        $this->validateConfig();
+
         $this->apiUrl = config('uk-bank-holidays.api_url');
         $this->defaultTerritory = config('uk-bank-holidays.default_territory');
-        $this->cacheDuration = config('uk-bank-holidays.cache_duration');
+        $this->cacheDuration = (int) config('uk-bank-holidays.cache_duration');
         $this->cacheKeyPrefix = config('uk-bank-holidays.cache_key_prefix');
     }
 
-    public function isHoliday(string|Carbon $date, ?string $territory = null): bool
-    {
+    public function isHoliday(
+        string|Carbon $date,
+        ?string $territory = null,
+    ): bool {
         $dateString = $this->parseDate($date);
-        $territory = $this->validateTerritory($territory ?? $this->defaultTerritory);
+        $territory = $this->validateTerritory(
+            $territory ?? $this->defaultTerritory,
+        );
 
         $holidays = $this->getHolidaysForTerritory($territory);
 
@@ -43,19 +50,30 @@ class BankHolidays
 
     public function forYear(int $year, ?string $territory = null): Collection
     {
-        $territory = $this->validateTerritory($territory ?? $this->defaultTerritory);
+        $territory = $this->validateTerritory(
+            $territory ?? $this->defaultTerritory,
+        );
 
         $holidays = $this->getHolidaysForTerritory($territory);
 
-        return $holidays->filter(function (Holiday $holiday) use ($year) {
-            return Carbon::parse($holiday->date)->year === $year;
-        })->sortBy('date')->values();
+        return $holidays
+            ->filter(function (Holiday $holiday) use ($year) {
+                return Carbon::parse($holiday->date)->year === $year;
+            })
+            ->sortBy('date')
+            ->values();
     }
 
-    public function next(?string $fromDate = null, ?string $territory = null): ?Holiday
-    {
-        $fromDate = $fromDate ? $this->parseDate($fromDate) : now()->format('Y-m-d');
-        $territory = $this->validateTerritory($territory ?? $this->defaultTerritory);
+    public function next(
+        ?string $fromDate = null,
+        ?string $territory = null,
+    ): ?Holiday {
+        $fromDate = $fromDate
+            ? $this->parseDate($fromDate)
+            : now()->format('Y-m-d');
+        $territory = $this->validateTerritory(
+            $territory ?? $this->defaultTerritory,
+        );
 
         $holidays = $this->getHolidaysForTerritory($territory);
 
@@ -64,27 +82,42 @@ class BankHolidays
         });
     }
 
-    public function between(string $startDate, string $endDate, ?string $territory = null): Collection
-    {
+    public function between(
+        string $startDate,
+        string $endDate,
+        ?string $territory = null,
+    ): Collection {
         $startDate = $this->parseDate($startDate);
         $endDate = $this->parseDate($endDate);
-        $territory = $this->validateTerritory($territory ?? $this->defaultTerritory);
+        $territory = $this->validateTerritory(
+            $territory ?? $this->defaultTerritory,
+        );
 
         if ($startDate > $endDate) {
-            throw InvalidDateException::make('Start date cannot be after end date');
+            throw InvalidDateException::make(
+                'Start date cannot be after end date',
+            );
         }
 
         $holidays = $this->getHolidaysForTerritory($territory);
 
-        return $holidays->filter(function (Holiday $holiday) use ($startDate, $endDate) {
-            return $holiday->date >= $startDate && $holiday->date <= $endDate;
-        })->sortBy('date')->values();
+        return $holidays
+            ->filter(function (Holiday $holiday) use ($startDate, $endDate) {
+                return $holiday->date >= $startDate &&
+                    $holiday->date <= $endDate;
+            })
+            ->sortBy('date')
+            ->values();
     }
 
-    public function get(string|Carbon $date, ?string $territory = null): ?Holiday
-    {
+    public function get(
+        string|Carbon $date,
+        ?string $territory = null,
+    ): ?Holiday {
         $dateString = $this->parseDate($date);
-        $territory = $this->validateTerritory($territory ?? $this->defaultTerritory);
+        $territory = $this->validateTerritory(
+            $territory ?? $this->defaultTerritory,
+        );
 
         $holidays = $this->getHolidaysForTerritory($territory);
 
@@ -95,11 +128,18 @@ class BankHolidays
     {
         $cacheKey = "{$this->cacheKeyPrefix}:{$territory}";
 
-        return Cache::remember($cacheKey, $this->cacheDuration, function () use ($territory) {
-            $data = $this->fetchFromApi();
+        return Cache::remember(
+            $cacheKey,
+            $this->cacheDuration,
+            function () use ($territory) {
+                $data = $this->fetchFromApi();
 
-            return $this->parseHolidays($data[$territory]['events'] ?? [], $territory);
-        });
+                return $this->parseHolidays(
+                    $data[$territory]['events'] ?? [],
+                    $territory,
+                );
+            },
+        );
     }
 
     protected function fetchFromApi(): array
@@ -131,15 +171,17 @@ class BankHolidays
         throw ApiConnectionException::make(0);
     }
 
-    protected function parseHolidays(array $events, string $territory): Collection
-    {
+    protected function parseHolidays(
+        array $events,
+        string $territory,
+    ): Collection {
         return collect($events)->map(function (array $event) use ($territory) {
             return new Holiday(
                 title: $event['title'],
                 date: $event['date'],
                 notes: $event['notes'] ?? '',
                 bunting: $event['bunting'] ?? false,
-                territory: $territory
+                territory: $territory,
             );
         });
     }
@@ -184,6 +226,15 @@ class BankHolidays
                 Cache::forget("{$this->cacheKeyPrefix}:{$territory}");
             }
             Cache::forget("{$this->cacheKeyPrefix}:all");
+        }
+    }
+
+    private function validateConfig(): void
+    {
+        foreach (config('uk-bank-holidays') as $key => $value) {
+            if (! isset($value) || trim($value) === '') {
+                throw InvalidConfigException::make($key);
+            }
         }
     }
 }

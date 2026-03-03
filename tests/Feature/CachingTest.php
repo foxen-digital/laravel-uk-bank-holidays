@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
     Http::fake([
-        'gov.uk/*' => Http::response(\Foxen\BankHolidays\Tests\Feature\getBankHolidaysJson()),
+        'https://www.gov.uk/*' => Http::response(getBankHolidaysJson()),
     ]);
 });
 
@@ -27,14 +27,13 @@ it('uses cached data on subsequent requests', function () {
 
     // Clear Http fake and set it to fail
     Http::fake([
-        'gov.uk/*' => Http::response([], 500),
+        'https://www.gov.uk/*' => Http::response([], 500),
     ]);
 
     // Second call should use cache
     $holidays2 = BankHolidays::forYear(2026);
 
-    expect($holidays1)->toHaveCount(8)
-        ->and($holidays2)->toHaveCount(8);
+    expect($holidays1)->toHaveCount(8)->and($holidays2)->toHaveCount(8);
 });
 
 it('can manually clear cache', function () {
@@ -44,7 +43,7 @@ it('can manually clear cache', function () {
 
     // After clearing, should make a new API call
     Http::fake([
-        'gov.uk/*' => Http::response(\Foxen\BankHolidays\Tests\Feature\getBankHolidaysJson()),
+        'https://www.gov.uk/*' => Http::response(getBankHolidaysJson()),
     ]);
 
     BankHolidays::forYear(2026);
@@ -60,7 +59,7 @@ it('can clear cache for specific territory', function () {
 
     // After clearing one territory, other should still be cached
     Http::fake([
-        'gov.uk/*' => Http::response(\Foxen\BankHolidays\Tests\Feature\getBankHolidaysJson()),
+        'https://www.gov.uk/*' => Http::response(getBankHolidaysJson()),
     ]);
 
     BankHolidays::forYear(2026, 'scotland');
