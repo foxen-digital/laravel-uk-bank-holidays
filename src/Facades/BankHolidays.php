@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \Foxen\BankHolidays\Data\Holiday|null get(string|\Carbon\Carbon $date, ?string $territory = null)
  * @method static void clearCache(?string $territory = null)
  *
- * @see \Foxen\BankHolidays\BankHolidays
+ * @see BankHolidaysClass
  */
 class BankHolidays extends Facade
 {

@@ -2,6 +2,7 @@
 
 namespace Foxen\BankHolidays\Tests\Feature;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Http;
 
@@ -39,13 +40,13 @@ it('supports else clause', function () {
 });
 
 it('checks today when no date provided', function () {
-    \Carbon\Carbon::setTestNow('2026-01-01');
+    Carbon::setTestNow('2026-01-01');
 
     $view = Blade::render('@bankholiday Holiday today! @endbankholiday');
 
     expect($view)->toContain('Holiday today!');
 
-    \Carbon\Carbon::setTestNow();
+    Carbon::setTestNow();
 });
 
 it('respects territory parameter', function () {
